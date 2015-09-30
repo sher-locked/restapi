@@ -1,47 +1,32 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"log"
+	"github.com/Pirate-Labs/restapi/models"
+	"net/http"
 )
 
-type User struct {
-	user_id    int16
-	first_name string
-	last_name  string
-	wallet     string
-	balance    int16
+/*Initilise the server */
+func main() {
+	models.InitDB("sher_locked:kenhar1!1naush@tcp(54.68.25.215:3306)/testdb")
+
+	http.HandleFunc("/users", usersIndex)
+	http.ListenAndServe(":3000", nil)
 }
 
-func main() {
-	db, err := sql.Open("mysql",
-		"sher_locked:kenhar1!1naush@tcp(54.68.25.215:3306)/testdb")
-	if err != nil {
-		log.Fatal(err)
+func usersIndex(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, http.StatusText(405), 405)
+		return
 	}
 
-	rows, err := db.Query("select * from user")
+	users, err := models.AllUsers()
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	users := make([]*User, 0)
-	for rows.Next() {
-		user := new(User)
-		err := rows.Scan(&user.user_id, &user.first_name, &user.last_name, &user.wallet, &user.balance)
-		if err != nil {
-			log.Fatal(err)
-		}
-		users = append(users, user)
-	}
-	if err = rows.Err(); err != nil {
-		log.Fatal(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
 	}
 
 	for _, user := range users {
-		fmt.Printf("%d, %s, %s, %s, %d \n", user.user_id, user.first_name, user.last_name, user.wallet, user.balance)
+		fmt.Fprintf(w, "%d, %s, %s, %s, %d \n", user.User_Id, user.First_Name, user.Last_Name, user.Wallet, user.Balance)
 	}
 }
